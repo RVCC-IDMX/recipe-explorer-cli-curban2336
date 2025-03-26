@@ -17,7 +17,7 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 /**
  * Initialize the cache file if it doesn't exist
- * 
+ *
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/try...catch | MDN: try...catch}
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function | MDN: async function}
  * @see {@link https://nodejs.org/api/fs.html#fs_promises_api | Node.js: fs/promises}
@@ -31,15 +31,27 @@ export async function initializeCache() {
   //    - Write an empty object as JSON to the file using fs.writeFile
   // 3. Handle any errors appropriately
 
-  // YOUR CODE HERE
+  try {
+    fs.access(CACHE_FILE);
+  }
+  catch (error) {
+    const dirPath = path.dirname(CACHE_FILE);
+    try {
+      fs.access(dirPath);
+    }
+    catch {
+      fs.mkdir(dirPath, { recursive: true });
+    }
+    fs.writeFile(CACHE_FILE, JSON.stringify({}, null, 2));
+  }
 }
 
 /**
  * Get data from cache if it exists and hasn't expired
- * 
+ *
  * @param {string} key - Cache key
  * @returns {Promise<Object|null>} - Cached data or null if not found or expired
- * 
+ *
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse | MDN: JSON.parse}
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/now | MDN: Date.now}
  */
@@ -56,16 +68,34 @@ export async function getFromCache(key) {
   // 6. If expired or not found, return null
   // 7. Handle any errors appropriately and return null
 
-  // YOUR CODE HERE
+  try {
+    const cacheData = JSON.parse(await fs.readFile(CACHE_FILE, 'utf8'));
+    if (cacheData[key]) {
+
+      const { timestamp, data } = undefined;
+      const now = Date.now();
+
+      if (now - timestamp < CACHE_DURATION) {
+        console.log(`Cache hit for key: ${key}`);
+        return data;
+      }
+      console.log(`Cache expired for key: ${key}`);
+      return null;
+    }
+  }
+  catch (error) {
+    console.error('Error reading from cache:', error.message);
+    return null;
+  }
 }
 
 /**
  * Save data to cache with a timestamp
- * 
+ *
  * @param {string} key - Cache key
  * @param {Object} data - Data to cache
  * @returns {Promise<boolean>} - True if successfully saved to cache
- * 
+ *
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify | MDN: JSON.stringify}
  */
 export async function saveToCache(key, data) {
@@ -85,9 +115,9 @@ export async function saveToCache(key, data) {
 
 /**
  * Clear expired entries from the cache
- * 
+ *
  * @returns {Promise<number>} - Number of entries removed
- * 
+ *
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/delete | MDN: delete operator}
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/for...in | MDN: for...in}
  */
@@ -108,12 +138,12 @@ export async function clearExpiredCache() {
 
 /**
  * Get a cached API response or fetch it if not available
- * 
+ *
  * @param {string} key - Cache key
  * @param {Function} fetchFn - Function to call if cache miss
  * @param {boolean} forceRefresh - Force a fresh fetch even if cached
  * @returns {Promise<Object>} - Data from cache or fresh fetch
- * 
+ *
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function | MDN: async function}
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises | MDN: Using promises}
  */

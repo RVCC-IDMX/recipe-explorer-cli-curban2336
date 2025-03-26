@@ -181,13 +181,12 @@ export async function getMealsByIngredient(ingredient, timeoutMs = 5000) {
     const timeoutPromise = new Promise(
       (_, reject) => {
         setTimeout(() => {
-          throw 'Request timed out';
-          //return reject(oops);
+          reject(new Error('Request timed out'));
         }, timeoutMs)
       }
     );
 
-    const fetchPromise = await fetch(`${BASE_URL}/filter.php?i=${encodeURIComponent(ingredient)}`)
+    const fetchPromise = fetch(`${BASE_URL}/filter.php?i=${encodeURIComponent(ingredient)}`)
       .then(response => {
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
@@ -201,7 +200,7 @@ export async function getMealsByIngredient(ingredient, timeoutMs = 5000) {
   }
   catch (error) {
     console.error('Error fetching meals by ingredient:', error.message);
-    if (error.message == 'Request timed out') {
+    if (error.message.includes('timed out')) {
       return `The request for meals with ${ingredient} took too long. Please try again later.`;
     }
     return [];
@@ -229,7 +228,29 @@ export async function getRelatedRecipes(recipe, limit = 3) {
   // 6. Return the filtered & limited array
   // 7. Handle errors with try/catch
 
-  // YOUR CODE HERE
+  if (!recipe || !recipe.strCategory) {
+    return [];
+  }
+
+  try {
+    const response = await fetch(`${BASE_URL}/filter.php?c=${encodeURIComponent(recipe.strCategory)}`);
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const meals = data.meals || [];
+
+    const filtered = meals.filter((meal) => { return meal.idMeal !== recipe.idMeal });
+
+    return filtered.slice(0, limit);
+  }
+  catch (error) {
+    console.error('Error fetching related recipes:', error.message);
+    return [];
+  }
+
 }
 
 /**
@@ -244,7 +265,20 @@ export async function getRandomMeal() {
   // 3. Return the first meal or null if no meals
   // 4. Handle errors with try/catch
 
-  // YOUR CODE HERE
+  try {
+    const response = await fetch(`${BASE_URL}/random.php`);
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.meals;
+  }
+  catch (error) {
+    console.error('Error fetching random meal:', error.message);
+    return null;
+  }
 }
 
 export default {
