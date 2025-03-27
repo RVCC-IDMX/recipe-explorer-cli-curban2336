@@ -71,8 +71,7 @@ export async function getFromCache(key) {
   try {
     const cacheData = JSON.parse(await fs.readFile(CACHE_FILE, 'utf8'));
     if (cacheData[key]) {
-
-      const { timestamp, data } = undefined;
+      const { timestamp, data } = cacheData[key];
       const now = Date.now();
 
       if (now - timestamp < CACHE_DURATION) {
@@ -80,8 +79,8 @@ export async function getFromCache(key) {
         return data;
       }
       console.log(`Cache expired for key: ${key}`);
-      return null;
     }
+    return null;
   }
   catch (error) {
     console.error('Error reading from cache:', error.message);
@@ -110,7 +109,22 @@ export async function saveToCache(key, data) {
   // 6. Return true on success
   // 7. Handle any errors and return false on failure
 
-  // YOUR CODE HERE
+  try {
+    initializeCache();
+    const cacheData = JSON.parse(await fs.readFile(CACHE_FILE, 'utf8'));
+
+    cacheData[key] = {
+      timestamp: Date.now(),
+      data: data,
+    };
+    fs.writeFile(CACHE_FILE, JSON.stringify(cacheData, null, 2));
+    console.log(`Saved to cache: ${key}`);
+    return true;
+  }
+  catch (error) {
+    console.error('Error saving to cache:', error.message);
+    return false;
+  }
 }
 
 /**
@@ -133,7 +147,29 @@ export async function clearExpiredCache() {
   // 8. Return the count of removed entries
   // 9. Handle any errors appropriately
 
-  // YOUR CODE HERE
+  try {
+    initializeCache();
+    const cacheData = JSON.parse(await fs.readFile(CACHE_FILE, 'utf8'));
+    const now = Date.now();
+    let removedCount = 0;
+
+    for (const key in cacheData) {
+      if (now - cacheData[key].timestamp > CACHE_DURATION) {
+        delete cacheData[key];
+        ++removedCount;
+      }
+    }
+
+    if (removedCount > 0) {
+      fs.writeFile(CACHE_FILE, JSON.stringify(cacheData, null, 2));
+      console.log(`Removed ${removedCount} expired cache entries`);
+    }
+    return removedCount;
+  }
+  catch (error) {
+    console.error('Error clearing expired cache:', error.message);
+    return 0;
+  }
 }
 
 /**
@@ -157,7 +193,36 @@ export async function getCachedOrFetch(key, fetchFn, forceRefresh = false) {
   // 6. Add error handling that tries to use expired cache as fallback if fetch fails
   //    (you can directly read the cache file again to get even expired data)
 
-  // YOUR CODE HERE
+  try {
+    if (!forceRefresh) {
+      const cachedData = await getFromCache(key);
+      if (cachedData) {
+        return cachedData;
+      }
+    }
+
+    console.log(`Fetching fresh data for key: ${key}`);
+    const freshData = await fetchFn();
+    saveToCache(key, freshData);
+    return freshData;
+  }
+  catch (error) {
+    console.error('Error in getCachedOrFetch:', error.message);
+    if (!forceRefresh) {
+      try {
+        const cacheData = JSON.parse(await fs.readFile(CACHE_FILE, 'utf8'));
+
+        if (cacheData[key]) {
+          console.log(`Using expired cache as fallback for key: ${key}`);
+          return cacheData[key].data;
+        }
+      }
+      catch (cacheError) {
+        console.error('Error accessing expired cache:', cacheError.message);
+      }
+    }
+    throw error;
+  }
 }
 
 export default {
