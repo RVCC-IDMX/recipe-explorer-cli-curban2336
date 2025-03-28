@@ -30,17 +30,17 @@ export async function initializeFavorites() {
   // 3. Handle any errors appropriately
 
   try {
-    fs.access(FAVORITES_FILE);
+    await fs.access(FAVORITES_FILE);
   }
   catch (error) {
     const dirPath = path.dirname(FAVORITES_FILE)
     try {
-      fs.access(dirPath);
+      await fs.access(dirPath);
     }
     catch {
-      fs.mkdir(dirPath, { recursive: true });
+      await fs.mkdir(dirPath, { recursive: true });
     }
-    fs.writeFile(FAVORITES_FILE, JSON.stringify([], null, 2));
+    await fs.writeFile(FAVORITES_FILE, JSON.stringify([], null, 2));
   }
 }
 
@@ -58,7 +58,15 @@ export async function getFavorites() {
   // 3. Parse the JSON data and return it
   // 4. Handle any errors and return an empty array if something goes wrong
 
-
+  try {
+    initializeFavorites();
+    const data = await fs.readFile(FAVORITES_FILE, 'utf8');
+    return JSON.parse(data);
+  }
+  catch (error) {
+    console.error('Error getting favorites:', error.message);
+    return [];
+  }
 }
 
 /**
@@ -81,7 +89,25 @@ export async function addFavorite(recipe) {
   // 7. Return true on success
   // 8. Handle any errors and return false on failure
 
-  // YOUR CODE HERE
+  try {
+    initializeFavorites();
+    const favorites = await getFavorites();
+    const exists = favorites.some(fav => fav.idMeal === recipe.idMeal);
+
+    if (exists) {
+      console.log(`Recipe "${recipe.strMeal}" is already in favorites`);
+      return false;
+    }
+
+    favorites.push(recipe);
+    await fs.writeFile(FAVORITES_FILE, JSON.stringify(favorites, null, 2));
+    console.log(`Added "${recipe.strMeal}" to favorites`);
+    return true;
+  }
+  catch (error) {
+    console.error('Error adding favorite:', error.message);
+    return false;
+  }
 }
 
 /**
@@ -104,7 +130,24 @@ export async function removeFavorite(recipeId) {
   // 7. Return true on success
   // 8. Handle any errors and return false on failure
 
-  // YOUR CODE HERE
+  try {
+    initializeFavorites();
+    const favorites = await getFavorites();
+    const initialLength = favorites.length;
+    const updatedFavorites = favorites.filter(recipe => recipe.idMeal !== recipeId);
+
+    if (updatedFavorites.length === initialLength) {
+      console.log(`Recipe with ID ${recipeId} not found in favorites`);
+      return false;
+    }
+    await fs.writeFile(FAVORITES_FILE, JSON.stringify(updatedFavorites, null, 2));
+    console.log(`Removed recipe with ID ${recipeId} from favorites`);
+    return true;
+  }
+  catch (error) {
+    console.error('Error removing favorite:', error.message);
+    return false;
+  }
 }
 
 /**
@@ -120,7 +163,14 @@ export async function isInFavorites(recipeId) {
   // 3. Return the result (true if found, false if not)
   // 4. Handle any errors and return false on failure
 
-  // YOUR CODE HERE
+  try {
+    const favorites = await getFavorites();
+    return favorites.some(recipe => recipe.idMeal === recipeId);
+  }
+  catch (error) {
+    console.error('Error checking favorites:', error.message);
+    return false;
+  }
 }
 
 /**
@@ -138,7 +188,14 @@ export async function getFavoriteById(recipeId) {
   // 3. Return the found recipe or null if not found
   // 4. Handle any errors and return null on failure
 
-  // YOUR CODE HERE
+  try {
+    const favorites = await getFavorites();
+    return favorites.find(recipe => recipe.idMeal === recipeId) || null;
+  }
+  catch (error) {
+    console.error('Error getting favorite by ID:', error.message);
+    return null;
+  }
 }
 
 export default {

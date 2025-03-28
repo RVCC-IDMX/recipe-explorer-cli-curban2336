@@ -32,17 +32,17 @@ export async function initializeCache() {
   // 3. Handle any errors appropriately
 
   try {
-    fs.access(CACHE_FILE);
+    await fs.access(CACHE_FILE);
   }
   catch (error) {
     const dirPath = path.dirname(CACHE_FILE);
     try {
-      fs.access(dirPath);
+      await fs.access(dirPath);
     }
     catch {
-      fs.mkdir(dirPath, { recursive: true });
+      await fs.mkdir(dirPath, { recursive: true });
     }
-    fs.writeFile(CACHE_FILE, JSON.stringify({}, null, 2));
+    await fs.writeFile(CACHE_FILE, JSON.stringify({}, null, 2));
   }
 }
 
@@ -117,7 +117,7 @@ export async function saveToCache(key, data) {
       timestamp: Date.now(),
       data: data,
     };
-    fs.writeFile(CACHE_FILE, JSON.stringify(cacheData, null, 2));
+    await fs.writeFile(CACHE_FILE, JSON.stringify(cacheData, null, 2));
     console.log(`Saved to cache: ${key}`);
     return true;
   }
@@ -161,7 +161,7 @@ export async function clearExpiredCache() {
     }
 
     if (removedCount > 0) {
-      fs.writeFile(CACHE_FILE, JSON.stringify(cacheData, null, 2));
+      await fs.writeFile(CACHE_FILE, JSON.stringify(cacheData, null, 2));
       console.log(`Removed ${removedCount} expired cache entries`);
     }
     return removedCount;
