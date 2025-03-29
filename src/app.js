@@ -25,8 +25,8 @@ async function initialize() {
   // 4. Catch any errors, log them, and return false
 
   try {
-    Promise.all([cache.initializeCache(), favorites.initializeFavorites()]);
-    cache.clearExpiredCache();
+    await Promise.all([cache.initializeCache(), favorites.initializeFavorites()]);
+    await cache.clearExpiredCache();
     return true;
   }
   catch (error) {
@@ -120,7 +120,7 @@ async function viewRecipeDetails(recipeId) {
     //    - Handle any errors in the chain
 
     const cacheKey = `recipe_${recipeId}`;
-    const recipes = await cache.getCachedOrFetch(cacheKey, () => api.getMealById(recipeId));
+    const recipe = await cache.getCachedOrFetch(cacheKey, () => api.getMealById(recipeId));
 
     if (!recipe) {
       console.log(`No recipe found with ID ${recipeId}`);

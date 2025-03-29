@@ -124,7 +124,7 @@ export async function searchMealsByFirstLetter(letters) {
       return fetch(`${BASE_URL}/search.php?f=${letter.charAt(0)}`)
         .then(response => {
           if (!response.ok) {
-            throw new Error(`API error for letter ${letter}: ${res.status}`);
+            throw new Error(`API error for letter ${letter}: ${response.status}`);
           }
           return response.json();
         })
@@ -273,7 +273,7 @@ export async function getRandomMeal() {
     }
 
     const data = await response.json();
-    return data.meals;
+    return data.meals ? data.meals[0] : null;
   }
   catch (error) {
     console.error('Error fetching random meal:', error.message);
