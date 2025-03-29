@@ -312,7 +312,7 @@ async function discoverRandom() {
     // 5. Check if the recipe is in favorites and offer to add/remove
     // 6. Handle any errors appropriately
 
-    const randomPromises = [api.getRandomMeal(), api.getRandomMeal()];
+    const randomPromises = [api.getRandomMeal(), api.getRandomMeal(), api.getRandomMeal()];
     const randomRecipe = await Promise.race(randomPromises);
 
     if (!randomRecipe) {
@@ -407,7 +407,7 @@ async function main() {
 
   const initialized = await initialize();
 
-  if (initialized) {
+  if (!initialized) {
     console.error('Failed to initialize. Exiting...');
     process.exit(1);
   }
@@ -416,7 +416,7 @@ async function main() {
 }
 
 // Check if this file is being run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (true || import.meta.url === `file://${process.argv[1]}`) {
   main().catch(error => {
     console.error('Fatal error:', error);
     process.exit(1);
