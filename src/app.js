@@ -68,7 +68,7 @@ async function searchRecipes() {
     console.log(utils.formatRecipeList(recipes));
 
     if (recipes && recipes.length > 0) {
-      const viewDetails = keyInYN('Would you like to view details for a recipe?');
+      const viewDetails = readlineSync.keyInYNStrict('Would you like to view details for a recipe?');
 
       if (viewDetails) {
         const index = readlineSync.questionInt(`Enter recipe number (1-${recipes.length}):`, {
@@ -78,7 +78,7 @@ async function searchRecipes() {
           },
           limitMessage: `Please enter a number between 1 and ${recipes.length}`,
         });
-        viewRecipeDetails(recipes[index - 1].idMeal);
+        await viewRecipeDetails(recipes[index - 1].idMeal);
       }
     }
   } catch (error) {
@@ -131,30 +131,29 @@ async function viewRecipeDetails(recipeId) {
     const isFavorite = await favorites.isInFavorites(recipeId);
 
     if (isFavorite) {
-      const remove = readlineSync.keyInYN('This recipe is in your favorites. Remove it?');
+      const remove = readlineSync.keyInYNStrict('This recipe is in your favorites. Remove it?');
       if (remove) {
-        favorites.removeFavorite(recipeId);
+        await favorites.removeFavorite(recipeId);
+        console.log('Recipe removed from favorites.');
       }
-      else {
-        const add = readlineSync.keyInYN('Add this recipe to favorites?');
-        if (add) {
-          favorites.addFavorite(recipe);
-        }
+    }
+    else {
+      const add = readlineSync.keyInYNStrict('Add this recipe to favorites?');
+      if (add) {
+        await favorites.addFavorite(recipe);
+        console.log('Recipe added to favorites.');
       }
     }
 
-    console.log(' Fetching related recipes...');
-    await api.getRelatedRecipes(recipe)
-      .then(relatedRecipes => {
-        if (relatedRecipes.length > 0) {
-          console.log(' You might also like:');
-          console.log(utils.formatRecipeList(relatedRecipes));
-        }
-        else {
-          console.log(' No related recipes found');
-        }
-      })
-      .catch(error => console.error('Error fetching related recipes:', error.message));
+    console.log('Fetching related recipes...');
+    const relatedRecipes = await api.getRelatedRecipes(recipe);
+    if (relatedRecipes.length > 0) {
+      console.log('You might also like:');
+      console.log(utils.formatRecipeList(relatedRecipes));
+    }
+    else {
+      console.log('No related recipes found');
+    }
   } catch (error) {
     console.error('Error viewing recipe details:', error.message);
   }
@@ -190,7 +189,7 @@ async function exploreByFirstLetter() {
     console.log(utils.formatRecipeList(recipes));
 
     if (recipes && recipes.length > 0) {
-      const viewDetails = readlineSync.keyInYN('Would you like to view details for a recipe?');
+      const viewDetails = readlineSync.keyInYNStrict('Would you like to view details for a recipe?');
 
       if (viewDetails) {
         const index = readlineSync.questionInt(`Enter recipe number (1-${recipes.length}):`, {
@@ -200,7 +199,7 @@ async function exploreByFirstLetter() {
           },
           limitMessage: `Please enter a number between 1 and ${recipes.length}`,
         });
-        viewRecipeDetails(recipes[index - 1].idMeal);
+        await viewRecipeDetails(recipes[index - 1].idMeal);
       }
     }
   } catch (error) {
@@ -233,25 +232,27 @@ async function searchByIngredient() {
     // 7. If the user wants to view details, call viewRecipeDetails with the chosen recipe ID
 
     const cacheKey = `ingredient_${ingredient.toLowerCase()}`;
-    const result = await cache.getCachedOrFetch(cacheKey, api.getMealsByIngredient(ingredient, 5000));
+    const result = await cache.getCachedOrFetch(cacheKey, () => api.getMealsByIngredient(ingredient, 5000));
+    
     if (typeof result === 'string') {
       console.log(result);
       return;
     }
+    
     console.log(utils.formatRecipeList(result));
 
-    if (recipes && recipes.length > 0) {
-      const viewDetails = readlineSync.keyInYN('Would you like to view details for a recipe?');
+    if (result && result.length > 0) {
+      const viewDetails = readlineSync.keyInYNStrict('Would you like to view details for a recipe?');
 
       if (viewDetails) {
-        const index = readlineSync.questionInt(`Enter recipe number (1-${recipes.length}):`, {
+        const index = readlineSync.questionInt(`Enter recipe number (1-${result.length}):`, {
           limit: input => {
             const num = parseInt(input);
-            return num >= 1 && num <= recipes.length;
+            return num >= 1 && num <= result.length;
           },
-          limitMessage: `Please enter a number between 1 and ${recipes.length}`,
+          limitMessage: `Please enter a number between 1 and ${result.length}`,
         });
-        viewRecipeDetails(recipes[index - 1].idMeal);
+        await viewRecipeDetails(result[index - 1].idMeal);
       }
     }
   } catch (error) {
@@ -275,7 +276,7 @@ async function viewFavorites() {
     console.log(utils.formatRecipeList(favoriteRecipes));
 
     // Allow viewing details
-    const viewDetails = readlineSync.keyInYN('Would you like to view details for a recipe?');
+    const viewDetails = readlineSync.keyInYNStrict('Would you like to view details for a recipe?');
 
     if (viewDetails) {
       const index = readlineSync.questionInt(`Enter recipe number (1-${favoriteRecipes.length}): `, {
@@ -324,17 +325,19 @@ async function discoverRandom() {
     const isFavorite = await favorites.isInFavorites(randomRecipe.idMeal);
 
     if (isFavorite) {
-      const remove = readlineSync.keyInYN('This recipe is in your favorites. Remove it?');
+      const remove = readlineSync.keyInYNStrict('This recipe is in your favorites. Remove it?');
 
       if (remove) {
-        favorites.removeFavorite(randomRecipe.idMeal);
+        await favorites.removeFavorite(randomRecipe.idMeal);
+        console.log('Recipe removed from favorites.');
       }
     }
     else {
-      const add = readlineSync.keyInYN('Add this recipe to favorites?');
+      const add = readlineSync.keyInYNStrict('Add this recipe to favorites?');
 
       if (add) {
-        favorites.addFavorite(randomRecipe);
+        await favorites.addFavorite(randomRecipe);
+        console.log('Recipe added to favorites.');
       }
     }
   } catch (error) {
@@ -416,7 +419,7 @@ async function main() {
 }
 
 // Check if this file is being run directly
-if (true || import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(error => {
     console.error('Fatal error:', error);
     process.exit(1);
